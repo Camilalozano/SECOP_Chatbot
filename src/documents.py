@@ -97,15 +97,16 @@ class Documents:
         candidates = sorted((r for r in rows if source_score(r, contract['referencia']) > 0),
                             key=lambda r: source_score(r, contract['referencia']), reverse=True)
         documents, failures, attempts = [], [], 0
-        seen, downloaded = set(), 0
+        seen, downloaded, retrievals = set(), 0, 0
         # No se descargan archivos personales de soporte ni todo el expediente.
         for row in candidates:
-            if attempts >= 3 or documents or downloaded >= 100 * 1024 * 1024:
+            if attempts >= 3 or retrievals >= 3 or documents or downloaded >= 100 * 1024 * 1024:
                 break
             url = document_url(row)
             if url in seen or not allowed(url, SECOP_HOST, '/Public/Archive/RetrieveFile/Index'):
                 continue
             seen.add(url)
+            retrievals += 1
             try:
                 data, _ = self.download(url, min(50 * 1024 * 1024, 100 * 1024 * 1024 - downloaded),
                                         headers={'Referer': 'https://community.secop.gov.co/'})
@@ -161,7 +162,7 @@ class Documents:
             except (DocumentError, zipfile.BadZipFile, RuntimeError, OSError, EOFError, zlib.error, NotImplementedError):
                 failures.append('No se pudo recuperar o abrir uno de los archivos candidatos.')
         if not documents:
-            failures.append('No se localizaron obligaciones en los soportes revisados. Esto no demuestra que el contrato carezca de obligaciones. El piloto revisa hasta tres PDF candidatos.')
+            failures.append('No se localizaron obligaciones en los soportes revisados. Esto no demuestra que el contrato carezca de obligaciones. El piloto revisa hasta tres archivos fuente y tres PDF candidatos.')
         result = {'inventory': inventory[:100], 'documents': documents,
                   'warnings': list(dict.fromkeys(failures)), 'text': f'{len(documents)} obligaciones específicas localizadas en el soporte citado.' if documents else 'Sin obligaciones verificables en los PDF revisados.'}
         if documents:

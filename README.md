@@ -32,8 +32,8 @@ la caché desaparece: no se ofrece una copia inexistente ni se guarda el CSV en 
 El origen documental incluye los históricos oficiales 2026, 2025, 2024, 2023,
 2022 y hasta 2021, paginación, deduplicación y proceso vinculado. Se excluyen los
 archivos ligados a otros contratos. Los PDF de procesos compartidos requieren
-comprobar la referencia contractual en el texto. El piloto revisa hasta tres PDF
-candidatos por pregunta y 20 MB por PDF; los contenedores ZIP están acotados a
+comprobar la referencia contractual en el texto. El piloto revisa hasta tres archivos
+fuente y tres PDF candidatos por pregunta, y 20 MB por PDF; los contenedores ZIP están acotados a
 50 MB, 500 miembros y 100 MB descomprimidos. No encontrar la sección no demuestra
 que el contrato carezca de obligaciones. Se conserva archivo, página, enlace y
 SHA-256. Los PDF escaneados requieren OCR previo. Datos Abiertos puede tener rezago.

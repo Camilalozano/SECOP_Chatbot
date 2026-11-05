@@ -1,4 +1,5 @@
 import json
+import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse, urlencode
 from urllib.request import Request, build_opener, HTTPRedirectHandler
@@ -9,6 +10,9 @@ SECOP_HOST = 'community.secop.gov.co'
 
 class SourceError(ValueError):
     """Mensaje público sin URL privada ni contenido de respuesta."""
+    def __init__(self, message, retryable=False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 def allowed(url, host, path=None):
@@ -26,7 +30,7 @@ class SameHost(HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def fetch(url, limit, headers=None, opener=None):
+def _fetch_once(url, limit, headers=None, opener=None):
     opener = opener or build_opener(SameHost()).open
     try:
         req = Request(url, headers={'User-Agent': 'SECOPChatbot/1.0', **(headers or {})})
@@ -41,11 +45,21 @@ def fetch(url, limit, headers=None, opener=None):
     except HTTPError as error:
         if error.code == 304:
             return None, {}
-        raise SourceError(f'La fuente no está disponible (HTTP {error.code}).') from None
+        raise SourceError(f'La fuente no está disponible (HTTP {error.code}).', error.code in {429, 500, 502, 503, 504}) from None
     except (URLError, OSError, TimeoutError, ValueError) as error:
         if isinstance(error, SourceError):
             raise
-        raise SourceError('No fue posible consultar la fuente. Intente nuevamente.') from None
+        raise SourceError('No fue posible consultar la fuente. Intente nuevamente.', True) from None
+
+
+def fetch(url, limit, headers=None, opener=None):
+    for attempt in range(2):
+        try:
+            return _fetch_once(url, limit, headers, opener)
+        except SourceError as error:
+            if not error.retryable or attempt == 1:
+                raise
+            time.sleep(0.3)
 
 
 def api_rows(dataset, params):
