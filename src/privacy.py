@@ -18,7 +18,7 @@ def safe_secop_url(value):
             if p.path == '/Public/Archive/RetrieveFile/Index':
                 document = params.get('DocumentId', [''])[0]
                 if re.fullmatch(r'\d{1,20}', document):
-                    return urlunparse(('https', 'community.secop.gov.co', p.path, '', urlencode({'DocumentId': document, 'InCommunity': 'False', 'InPaymentGateway': 'False'}), ''))
+                    return urlunparse(('https', 'community.secop.gov.co', p.path, '', urlencode({'DocumentId': document, 'InCommunity': 'False', 'InPaymentGateway': 'False', 'DocUniqueIdentifier': ''}), ''))
             if p.path == '/Public/Tendering/OpportunityDetail/Index':
                 notice = params.get('noticeUID', [''])[0]
                 if re.fullmatch(r'CO1\.NTC\.\d+', notice, re.I):

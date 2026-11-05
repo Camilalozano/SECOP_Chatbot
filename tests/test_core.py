@@ -82,6 +82,7 @@ class PrivacyTests(unittest.TestCase):
         url = 'https://community.secop.gov.co/Public/Archive/RetrieveFile/Index?DocumentId=724204637&cedula=1013640777'
         result = Redactor(['1013640777']).tree({'url_secop': url, 'texto': '1013640777'})
         self.assertIn('DocumentId=724204637', result['url_secop'])
+        self.assertTrue(result['url_secop'].endswith('DocUniqueIdentifier='))
         self.assertNotIn('cedula', result['url_secop'])
         self.assertNotIn('1013640777', repr(result))
 

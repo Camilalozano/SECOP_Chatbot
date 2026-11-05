@@ -13,6 +13,7 @@ from src.documents import Documents
 from src.limits import Governor
 from src.query import spec
 from src.service import ChatService
+from src.privacy import safe_secop_url
 
 KEYS = ['ORACLE_PAR_URL', 'OPENAI_API_KEY', 'OPENAI_MODEL', 'AI_ENABLED', 'INCLUDED_CREDITS_ONLY_VERIFIED',
         'NO_PAID_FALLBACK_VERIFIED', 'CREDITS_VERIFIED_UNTIL', 'AI_TURN_RESERVE_USD', 'AI_RUN_BUDGET_USD',
@@ -39,7 +40,7 @@ def configuration():
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-05.2'):
+def shared_service(settings, revision='2026-11-05.3'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 
@@ -63,6 +64,9 @@ def render(result, index):
     if rows:
         public_rows = [{LABELS.get(k, {'resultado': 'Resultado', 'pagina': 'Página', 'archivo': 'Archivo', 'numero': 'Número', 'texto': 'Obligación específica', 'cita': 'Cita', 'fecha': 'Fecha de carga', 'asociacion': 'Asociación'}.get(k, k)): v
                         for k, v in row.items() if k not in {'sha256'}} for row in rows]
+        for row in public_rows:
+            if 'Fuente SECOP' in row:
+                row['Fuente SECOP'] = safe_secop_url(row['Fuente SECOP'])
         st.dataframe(public_rows, hide_index=True, width='stretch')
         output = io.StringIO(newline='')
         writer = csv.DictWriter(output, fieldnames=list(public_rows[0]), extrasaction='ignore')
@@ -85,9 +89,8 @@ def render(result, index):
         for source in result.get('sources', []):
             url = source.get('url_secop', '')
             if url and url not in links:
-                from src.privacy import safe_secop_url
                 if safe_secop_url(url):
-                    st.link_button('Abrir fuente oficial · ' + source.get('archivo', 'SECOP'), url)
+                    st.link_button('Abrir fuente oficial · ' + source.get('archivo', 'SECOP'), safe_secop_url(url))
                     links.add(url)
 
 
