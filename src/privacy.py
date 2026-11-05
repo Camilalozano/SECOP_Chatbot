@@ -1,7 +1,7 @@
 """La vista pública se construye por inclusión explícita, nunca por ocultar columnas UI."""
 import re
 import unicodedata
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 
 def fold(value):
@@ -14,7 +14,15 @@ def safe_secop_url(value):
     try:
         p = urlparse(str(value or ''))
         if p.scheme == 'https' and p.hostname == 'community.secop.gov.co' and p.port in (None, 443) and not p.username and not p.password:
-            return str(value)
+            params = parse_qs(p.query)
+            if p.path == '/Public/Archive/RetrieveFile/Index':
+                document = params.get('DocumentId', [''])[0]
+                if re.fullmatch(r'\d{1,20}', document):
+                    return urlunparse(('https', 'community.secop.gov.co', p.path, '', urlencode({'DocumentId': document, 'InCommunity': 'False', 'InPaymentGateway': 'False'}), ''))
+            if p.path == '/Public/Tendering/OpportunityDetail/Index':
+                notice = params.get('noticeUID', [''])[0]
+                if re.fullmatch(r'CO1\.NTC\.\d+', notice, re.I):
+                    return urlunparse(('https', 'community.secop.gov.co', p.path, '', urlencode({'noticeUID': notice.upper(), 'isFromPublicArea': 'True'}), ''))
     except ValueError:
         pass
     return ''
@@ -50,7 +58,7 @@ class Redactor:
 
     def tree(self, value):
         if isinstance(value, dict):
-            return {k: self.tree(v) for k, v in value.items()}
+            return {k: safe_secop_url(v) if k == 'url_secop' else self.tree(v) for k, v in value.items()}
         if isinstance(value, (list, tuple)):
             return [self.tree(v) for v in value]
         return self.clean(value) if isinstance(value, str) else value

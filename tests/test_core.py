@@ -78,6 +78,13 @@ class CatalogTests(unittest.TestCase):
 
 
 class PrivacyTests(unittest.TestCase):
+    def test_official_document_links_remain_usable_without_personal_parameters(self):
+        url = 'https://community.secop.gov.co/Public/Archive/RetrieveFile/Index?DocumentId=724204637&cedula=1013640777'
+        result = Redactor(['1013640777']).tree({'url_secop': url, 'texto': '1013640777'})
+        self.assertIn('DocumentId=724204637', result['url_secop'])
+        self.assertNotIn('cedula', result['url_secop'])
+        self.assertNotIn('1013640777', repr(result))
+
     def test_identifiers_in_text_and_nested_exports(self):
         redact = Redactor(['1013640777', '79157459'], [URL, 'sk-test_secret'])
         raw = {'texto': ['CC 1.013.640.777; 79.157.459; usuario@ejemplo.com; ' + URL + ' sk-test_secret', 'Cédula de ciudadanía No. 333445566']}

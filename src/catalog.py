@@ -26,7 +26,7 @@ LABELS = {'id': 'ID SECOP', 'referencia': 'Contrato', 'objeto': 'Objeto', 'anio'
           'valor': 'Valor contractual reportado (COP)', 'pagado': 'Valor pagado reportado (COP)',
           'inicio': 'Inicio', 'fin': 'Finalización reportada', 'firma': 'Firma', 'estado': 'Estado',
           'tipo': 'Tipo de contrato', 'modalidad': 'Modalidad', 'dependencia': 'Dependencia solicitante del PAA',
-          'proveedor': 'Proveedor', 'url_secop': 'Proceso SECOP', 'origen': 'Origen del registro'}
+          'proveedor': 'Proveedor', 'url_secop': 'Fuente SECOP', 'origen': 'Origen del registro'}
 
 
 def money(value):
