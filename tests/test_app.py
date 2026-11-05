@@ -41,7 +41,7 @@ class AppTests(unittest.TestCase):
         next(b for b in app.button if b.label == 'Consultar con filtros').click().run()
         self.assertFalse(app.exception)
         self.assertEqual(len(app.session_state['messages'][-1]['rows']), 1)
-        self.assertNotIn('1013640777', str(app.session_state['messages']))
+        self.assertNotIn('1111111111', str(app.session_state['messages']))
 
     def test_no_connection_actionable_error(self):
         app = AppTest.from_file(APP, default_timeout=20)

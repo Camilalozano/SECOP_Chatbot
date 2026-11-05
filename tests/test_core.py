@@ -61,7 +61,7 @@ class CatalogTests(unittest.TestCase):
     def test_only_public_fields_and_money(self):
         rows, redactor, _ = parse(fixture())
         self.assertEqual(set(rows[0]), set(FIELDS))
-        self.assertNotIn('1013640777', repr(rows))
+        self.assertNotIn('1111111111', repr(rows))
         self.assertEqual(money('1.234.567,89'), Decimal('1234567.89'))
         self.assertIsNone(money('NaN'))
         self.assertIsNone(money('-1'))
@@ -79,18 +79,18 @@ class CatalogTests(unittest.TestCase):
 
 class PrivacyTests(unittest.TestCase):
     def test_official_document_links_remain_usable_without_personal_parameters(self):
-        url = 'https://community.secop.gov.co/Public/Archive/RetrieveFile/Index?DocumentId=724204637&cedula=1013640777'
-        result = Redactor(['1013640777']).tree({'url_secop': url, 'texto': '1013640777'})
+        url = 'https://community.secop.gov.co/Public/Archive/RetrieveFile/Index?DocumentId=724204637&cedula=1111111111'
+        result = Redactor(['1111111111']).tree({'url_secop': url, 'texto': '1111111111'})
         self.assertIn('DocumentId=724204637', result['url_secop'])
         self.assertTrue(result['url_secop'].endswith('DocUniqueIdentifier='))
         self.assertNotIn('cedula', result['url_secop'])
-        self.assertNotIn('1013640777', repr(result))
+        self.assertNotIn('1111111111', repr(result))
 
     def test_identifiers_in_text_and_nested_exports(self):
-        redact = Redactor(['1013640777', '79157459'], [URL, 'sk-test_secret'])
-        raw = {'texto': ['CC 1.013.640.777; 79.157.459; usuario@ejemplo.com; ' + URL + ' sk-test_secret', 'Cédula de ciudadanía No. 333445566']}
+        redact = Redactor(['1111111111', '22222222'], [URL, 'sk-test_secret'])
+        raw = {'texto': ['CC 1.111.111.111; 22.222.222; usuario@ejemplo.com; ' + URL + ' sk-test_secret', 'Cédula de ciudadanía No. 333445566']}
         result = json.dumps(redact.tree(raw), ensure_ascii=False)
-        for forbidden in ('1.013.640.777', '79.157.459', '333445566', 'usuario@', URL, 'sk-test_secret'):
+        for forbidden in ('1.111.111.111', '22.222.222', '333445566', 'usuario@', URL, 'sk-test_secret'):
             self.assertNotIn(forbidden, result)
 
     def test_private_requests_are_blocked_without_network(self):
@@ -202,11 +202,11 @@ class DocumentTests(unittest.TestCase):
 
     def test_contract_identity_redaction_and_pages(self):
         reader = Mock(return_value=['ATENEA-582-2025\nOBLIGACIONES DE LA IES: 1. Reportar.\n',
-                                   '2. Entregar, cédula 1013640777. D. OBLIGACIONES DE LA AGENCIA: Pagar.'])
+                                   '2. Entregar, cédula 1111111111. D. OBLIGACIONES DE LA AGENCIA: Pagar.'])
         docs = Documents(lookup=lambda cid: (self.rows(1), []), download=Mock(return_value=(b'%PDF-test', {})), reader=reader)
         result = docs.answer(self.row, self.snapshot, '', 'obligaciones')
         self.assertEqual([r['pagina'] for r in result['documents']], [1, 2])
-        self.assertNotIn('1013640777', repr(result))
+        self.assertNotIn('1111111111', repr(result))
         self.assertNotIn('Pagar.', repr(result['documents']))
         reader.return_value = ['ATENEA-999-2025 OBLIGACIONES DE LA IES: 1. Reportar.']
         docs.cache.clear()

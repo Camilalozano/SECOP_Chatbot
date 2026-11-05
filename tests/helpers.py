@@ -20,8 +20,8 @@ def fixture(extra=None):
                     FIELDS['modalidad']: 'Contratación directa', FIELDS['objeto']: 'Apoyo al análisis de información',
                     FIELDS['inicio']: f'{year}-01-10', FIELDS['fin']: f'{year}-12-30',
                     FIELDS['url_secop']: 'https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.42',
-                    'documento_proveedor (contratos_electronicos)': '1013640777',
-                    'n_mero_de_documento_supervisor (contratos_electronicos)': '79157459'})
+                    'documento_proveedor (contratos_electronicos)': '1111111111',
+                    'n_mero_de_documento_supervisor (contratos_electronicos)': '22222222'})
         rows.append(row)
     if extra:
         extra(rows)

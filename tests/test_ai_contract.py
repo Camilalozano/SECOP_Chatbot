@@ -18,11 +18,11 @@ class ApiContractTests(unittest.TestCase):
         client = Mock()
         client.responses.parse.return_value = SimpleNamespace(output_parsed=spec(operacion='contar'))
         a = Assistant(self.settings(), Governor(), client)
-        result = a.interpret('Consultar 1013640777', Redactor(['1013640777']))
+        result = a.interpret('Consultar 1111111111', Redactor(['1111111111']))
         self.assertEqual(result.operacion, 'contar')
         kwargs = client.responses.parse.call_args.kwargs
         self.assertFalse(kwargs['store'])
-        self.assertNotIn('1013640777', kwargs['input'])
+        self.assertNotIn('1111111111', kwargs['input'])
         self.assertEqual(kwargs['model'], 'gpt-5-mini')
 
     def test_unsourced_number_discards_generated_summary(self):
