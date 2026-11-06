@@ -1,7 +1,7 @@
 import re
 from .ai import Assistant, enabled
 from .query import fallback, execute, basic_plan, spec
-from .privacy import private_request
+from .privacy import private_request, fold
 
 
 class ChatService:
@@ -46,6 +46,20 @@ class ChatService:
                             if automatic else fallback(redactor.clean(question)))
             if plan.operacion == 'aclarar' or plan.aclaracion:
                 return self._result(snapshot, freshness, question, redactor.clean(plan.aclaracion or 'Indica con más precisión qué información necesitas.'), [], warnings, ai_interpreted=interpreted)
+            # La lista ya incorpora un conteo completo: no son dos operaciones incompatibles.
+            q = fold(question)
+            if plan.operacion == 'contar' and re.search(r'\bCUANTOS\b', q) and re.search(r'\bCUALES\b', q):
+                plan = plan.model_copy(update={'operacion': 'listar', 'medida': 'contratos'})
+            if plan.proveedor and fold(plan.proveedor).strip() == 'UNIVERSIDADES':
+                plan = plan.model_copy(update={'proveedor': 'universidad'})
+            if plan.estado and fold(plan.estado).strip() in {'VIGENTE', 'VIGENTES', 'ACTIVO', 'ACTIVOS'}:
+                plan = plan.model_copy(update={'estado': 'En ejecución'})
+            criteria = []
+            if re.search(r'\b(?:VIGENTES?|ACTIVOS?)\b', q) and plan.estado and fold(plan.estado).strip() == 'EN EJECUCION':
+                criteria.append('Se interpreta «vigentes/activos» como estado reportado «En ejecución», sin comprobar vigencia por fechas ni emitir una conclusión jurídica.')
+            if plan.proveedor and fold(plan.proveedor).strip() == 'UNIVERSIDAD':
+                criteria.append('Universidades: proveedores cuyo nombre registrado contiene la palabra «universidad». La base no ofrece una clasificación exhaustiva de instituciones de educación superior.')
+            warnings.extend(criteria)
             result = execute(snapshot.rows, plan)
             sources = []
             documents = []
@@ -83,7 +97,10 @@ class ChatService:
                 elif len(display_rows) > 1:
                     warnings.append('Hay varios nombres de proveedor coincidentes. Revisa el desglose y precisa el nombre completo; no se ha verificado que correspondan a una misma persona.')
                 text += ' El resultado se limita a los contratos contenidos en esta base.'
-            if use_ai and result['matching_contracts'] and not named_count:
+            combined_list = plan.operacion == 'listar' and re.search(r'\bCUANTOS\b', q) and re.search(r'\bCUALES\b', q)
+            if combined_list:
+                text = f"Se encontraron {result['matching_contracts']} contratos en la base consultada. La tabla detalla los contratos coincidentes."
+            if use_ai and result['matching_contracts'] and not named_count and not combined_list:
                 # El modelo recibe una muestra limitada; la tabla conserva el resultado del motor.
                 facts = {'operation': plan.operacion, 'matching_contracts': result['matching_contracts'],
                          'measure': result['measure'], 'rows': display_rows[:10], 'documents': documents[:12],

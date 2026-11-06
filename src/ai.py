@@ -42,6 +42,12 @@ Operaciones: listar, contar, sumar, agrupar, obligaciones, documentos o aclarar.
 Filtros: referencia exacta (ATENEA-003-2025 o CO1.PCCNTR...), texto del objeto, proveedor, estado,
 dependencia solicitante del PAA, modalidad, año contractual y vencimientos futuros (1 a 366 días).
 Medidas: contratos (conteo), valor (valor contractual reportado COP), pagado (pagado reportado COP).
+Si solicitan cantidad y detalle ("cuántos y cuáles"), usa listar: el servidor calcula también el total de coincidencias.
+"Universidades" como clase de proveedor se busca con proveedor="universidad", no en el objeto ni en dependencia.
+"Vigentes" o "activos", sin otra definición explícita, usa estado="En ejecución"; el servidor explicará este criterio operativo.
+No inventes el estado VIGENTE. Si solicitan vigencia por fechas o una definición distinta no admitida, pide aclaración.
+Esta base corresponde a ATENEA: "en Atenea" no es un filtro de dependencia ni de proveedor. No supongas un año si no se indica.
+Ejemplo: "Cuántos y cuáles contratos con universidades hay vigentes en Atenea" -> listar, proveedor universidad, estado En ejecución, anio null.
 No hay datos suficientes para calcular cumplimiento, riesgo, legalidad, avance financiero ponderado,
 valor inicial frente a vigente, historial íntegro de cambios ni comparaciones multietapa en una sola operación.
 Para eso pide aclaración y explica el límite. No inventes filtros por supervisores ni identificaciones.
