@@ -7,17 +7,29 @@ from .query import QuerySpec
 
 
 def enabled(settings):
-    # Nunca se activa por la mera existencia de una clave o de una suscripción.
+    # Créditos incluidos y prepago son modalidades distintas; no se declara
+    # falsamente que un saldo comprado viene incluido en una suscripción.
     try:
         end = datetime.fromisoformat(str(settings.get('CREDITS_VERIFIED_UNTIL', '')).replace('Z', '+00:00'))
         budget = float(settings.get('AI_RUN_BUDGET_USD', 0))
         reserve = float(settings.get('AI_TURN_RESERVE_USD', 0.05))
+        mode = settings.get('AI_CREDIT_MODE', 'included')
+        if mode == 'prepaid':
+            balance = float(settings.get('VERIFIED_CREDIT_BALANCE_USD', 0))
+            credits_ok = (settings.get('PREPAID_CREDITS_VERIFIED') is True
+                          and settings.get('AUTO_RECHARGE_DISABLED_VERIFIED') is True
+                          and math.isfinite(balance) and 0 < budget <= balance)
+        elif mode == 'included':
+            credits_ok = (settings.get('INCLUDED_CREDITS_ONLY_VERIFIED') is True
+                          and settings.get('NO_PAID_FALLBACK_VERIFIED') is True)
+        else:
+            credits_ok = False
         return (math.isfinite(budget) and math.isfinite(reserve)
                 and settings.get('AI_ENABLED') is True
-                and settings.get('INCLUDED_CREDITS_ONLY_VERIFIED') is True
-                and settings.get('NO_PAID_FALLBACK_VERIFIED') is True
+                and credits_ok
                 and settings.get('HOSTING_AND_ORACLE_QUOTA_VERIFIED') is True
-                and bool(settings.get('OPENAI_API_KEY'))
+                and isinstance(settings.get('OPENAI_API_KEY'), str)
+                and bool(settings['OPENAI_API_KEY'].strip())
                 and end.tzinfo is not None and end > datetime.now(timezone.utc)
                 and budget >= reserve > 0)
     except (ValueError, TypeError, OverflowError):
@@ -47,12 +59,12 @@ class Assistant:
 
     def _client(self):
         if self.client is None:
-            self.client = OpenAI(api_key=self.settings['OPENAI_API_KEY'], timeout=35, max_retries=0)
+            self.client = OpenAI(api_key=self.settings['OPENAI_API_KEY'].strip(), timeout=35, max_retries=0)
         return self.client
 
     def interpret(self, question, redactor):
         if not enabled(self.settings):
-            raise ValueError('IA desactivada: no hay créditos verificados para este piloto.')
+            raise ValueError('La conexión de IA aún no está habilitada o su verificación de créditos venció. Puedes usar los filtros.')
         try:
             response = self._client().responses.parse(
                 model=self.settings.get('OPENAI_MODEL', 'gpt-5-mini'), store=False,
@@ -63,6 +75,8 @@ class Assistant:
             return response.output_parsed
         except OpenAIError as error:
             self._api_error(error)
+        except (ValueError, TypeError):
+            raise ValueError('La IA no produjo una consulta válida. Reformula la pregunta o utiliza los filtros.') from None
 
     def explain(self, question, facts, redactor):
         if not enabled(self.settings):
@@ -96,4 +110,7 @@ class Assistant:
         code = getattr(error, 'code', '')
         if code in {'insufficient_quota', 'credit_balance_exhausted', 'billing_hard_limit_reached'}:
             self.governor.stop_ai()
+        if getattr(error, 'status_code', None) in {401, 403}:
+            self.governor.stop_ai()
+            raise ValueError('La conexión de IA necesita revisar la clave API o sus permisos. Los filtros siguen disponibles.') from None
         raise ValueError('IA temporalmente no disponible. Los filtros y resultados calculados siguen disponibles.') from None

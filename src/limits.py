@@ -51,3 +51,7 @@ class Governor:
     def stop_ai(self):
         with self.lock:
             self.credit_blocked = True
+
+    def ai_available(self, budget, reserve=0.05):
+        with self.lock:
+            return not self.credit_blocked and reserve > 0 and self.reserved + reserve <= budget

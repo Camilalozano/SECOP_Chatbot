@@ -12,6 +12,28 @@ APP = str(Path(__file__).resolve().parents[1] / 'app.py')
 
 
 class AppTests(unittest.TestCase):
+    def test_public_ai_module_and_basic_mode_selector(self):
+        from datetime import datetime, timedelta, timezone
+        from src.query import spec
+        app = self.start()
+        app.secrets.update({'AI_ENABLED': True, 'OPENAI_API_KEY': 'sk-fake-ui', 'AI_CREDIT_MODE': 'prepaid',
+                            'PREPAID_CREDITS_VERIFIED': True, 'AUTO_RECHARGE_DISABLED_VERIFIED': True,
+                            'VERIFIED_CREDIT_BALANCE_USD': 5, 'AI_RUN_BUDGET_USD': 1,
+                            'HOSTING_AND_ORACLE_QUOTA_VERIFIED': True,
+                            'CREDITS_VERIFIED_UNTIL': (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()})
+        with patch('src.ai.Assistant.interpret', return_value=spec(operacion='contar', anio=2026)) as interpret, \
+             patch('src.ai.Assistant.explain', return_value='Hay 2 contratos coincidentes.'):
+            app.run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any(r.label == 'Modo de consulta' for r in app.radio))
+            next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+            self.assertTrue(app.session_state['messages'][-1]['ai_interpreted'])
+            self.assertEqual(interpret.call_count, 1)
+            next(r for r in app.radio if r.label == 'Modo de consulta').set_value('Consulta básica').run()
+            next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+            self.assertFalse(app.session_state['messages'][-1]['ai_interpreted'])
+            self.assertEqual(interpret.call_count, 1)
+
     def test_oracle_timestamp_is_shown_in_bogota(self):
         from app import local_time
         self.assertIn('05/11/2026 00:47', local_time('Thu, 05 Nov 2026 05:47:06 GMT'))

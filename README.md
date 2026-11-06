@@ -70,7 +70,31 @@ servicios pagos.
 
 ## Activación de IA: cerrada por defecto
 
-No basta con tener ChatGPT, suscripción o clave. La API permanece desactivada si
+### Saldo prepago
+
+El piloto admite créditos comprados, pagados por quien administra el aplicativo.
+Los visitantes siguen sin necesitar cuentas ni suscripciones de IA. Configure
+`AI_CREDIT_MODE = "prepaid"`, `PREPAID_CREDITS_VERIFIED = true`,
+`AUTO_RECHARGE_DISABLED_VERIFIED = true` y el saldo comprobado en
+`VERIFIED_CREDIT_BALANCE_USD`. El presupuesto preventivo `AI_RUN_BUDGET_USD` debe
+ser positivo y menor o igual al saldo verificado. La recarga automática debe
+permanecer apagada. No configure como verdaderas las verificaciones de créditos
+incluidos si el saldo fue comprado.
+
+Agregue `OPENAI_API_KEY` únicamente en los secretos del servidor, conservando el
+PAR existente. La clave se crea en OpenAI Platform y nunca debe pegarse en chats,
+campos públicos ni GitHub. El campo `CREDITS_VERIFIED_UNTIL` es la fecha UTC hasta
+la que se permite usar la verificación administrativa, no el vencimiento real del
+saldo del proveedor. No se consulta el saldo en tiempo real desde esta aplicación.
+
+Una vez configurado, la web muestra **Consulta con IA** y **Consulta básica**.
+La primera interpreta preguntas y redacta explicaciones con OpenAI; la segunda
+no llama a la API. El formulario de filtros tampoco usa IA. Cada resultado indica
+si fue interpretado o resumido por IA. Los cálculos siguen realizándose con DuckDB.
+
+### Créditos incluidos (compatibilidad)
+
+No basta con tener ChatGPT, suscripción o clave. En modo `included`, la API permanece desactivada si
 falta cualquiera de estas condiciones administradas exclusivamente desde Secrets:
 
 1. Créditos de API incluidos efectivamente disponibles y con vencimiento conocido.

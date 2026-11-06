@@ -17,7 +17,8 @@ from src.privacy import safe_secop_url
 
 KEYS = ['ORACLE_PAR_URL', 'OPENAI_API_KEY', 'OPENAI_MODEL', 'AI_ENABLED', 'INCLUDED_CREDITS_ONLY_VERIFIED',
         'NO_PAID_FALLBACK_VERIFIED', 'CREDITS_VERIFIED_UNTIL', 'AI_TURN_RESERVE_USD', 'AI_RUN_BUDGET_USD',
-        'HOSTING_AND_ORACLE_QUOTA_VERIFIED']
+        'HOSTING_AND_ORACLE_QUOTA_VERIFIED', 'AI_CREDIT_MODE', 'PREPAID_CREDITS_VERIFIED',
+        'AUTO_RECHARGE_DISABLED_VERIFIED', 'VERIFIED_CREDIT_BALANCE_USD']
 
 
 def configuration():
@@ -27,20 +28,22 @@ def configuration():
             value = st.secrets.get(key, os.environ.get(key, ''))
         except (FileNotFoundError, st.errors.StreamlitSecretNotFoundError):
             value = os.environ.get(key, '')
-        if key in {'AI_ENABLED', 'INCLUDED_CREDITS_ONLY_VERIFIED', 'NO_PAID_FALLBACK_VERIFIED', 'HOSTING_AND_ORACLE_QUOTA_VERIFIED'}:
+        if key in {'AI_ENABLED', 'INCLUDED_CREDITS_ONLY_VERIFIED', 'NO_PAID_FALLBACK_VERIFIED', 'HOSTING_AND_ORACLE_QUOTA_VERIFIED',
+                   'PREPAID_CREDITS_VERIFIED', 'AUTO_RECHARGE_DISABLED_VERIFIED'}:
             value = value is True or str(value).lower() == 'true'
-        if key in {'AI_TURN_RESERVE_USD', 'AI_RUN_BUDGET_USD'}:
+        if key in {'AI_TURN_RESERVE_USD', 'AI_RUN_BUDGET_USD', 'VERIFIED_CREDIT_BALANCE_USD'}:
             try:
                 value = max(0.0, float(value)) if value != '' else (0.05 if key == 'AI_TURN_RESERVE_USD' else 0.0)
             except (ValueError, TypeError):
                 value = 0.0
         values[key] = value
     values['OPENAI_MODEL'] = values['OPENAI_MODEL'] or 'gpt-5-mini'
+    values['AI_CREDIT_MODE'] = values['AI_CREDIT_MODE'] or 'included'
     return values
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-05.4'):
+def shared_service(settings, revision='2026-11-05.prepaid.1'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 
@@ -58,6 +61,11 @@ def local_time(value):
 
 def render(result, index):
     st.write(result['text'])
+    if result.get('ai_interpreted'):
+        st.caption('Consulta interpretada con IA · Cálculos verificados por el motor de datos'
+                   + (' · Resumen generado con IA' if result.get('ai_summarized') else ''))
+    elif not result.get('private'):
+        st.caption('Consulta básica · Sin consumo de IA')
     for warning in result['warnings']:
         st.warning(warning)
     rows = result['rows']
@@ -102,11 +110,15 @@ def main():
     service = shared_service(settings)
     st.session_state.setdefault('session_id', uuid.uuid4().hex)
     st.session_state.setdefault('messages', [])
-    available = enabled(settings) and not service.governor.credit_blocked
+    available = enabled(settings) and service.governor.ai_available(settings['AI_RUN_BUDGET_USD'], settings['AI_TURN_RESERVE_USD'])
+    st.subheader('Pregúntale a la base de datos')
     if available:
         st.info('IA disponible · Hasta 5 preguntas por sesión cada hora. Los cálculos se realizan sobre la base consultada.')
+        query_mode = st.radio('Modo de consulta', ['Consulta con IA', 'Consulta básica'], horizontal=True, key='query_mode')
+        st.caption('Puedes combinar año, proveedor, estado, dependencia o modalidad. Ejemplo: ¿Cuántos contratos de universidades están en ejecución en 2026?')
     else:
-        st.info('Modo de consulta sin IA. Puedes buscar contratos, usar filtros y consultar obligaciones. La IA se habilitará únicamente con créditos verificados.')
+        query_mode = 'Consulta básica'
+        st.info('Consulta básica disponible. El módulo de IA necesita una conexión habilitada y presupuesto disponible; puedes seguir usando las búsquedas y los filtros.')
     st.caption('No ingreses cédulas, datos bancarios ni información privada. Este piloto ofrece información contractual y no certifica cumplimiento ni emite conceptos jurídicos.')
     prompt = None
     cols = st.columns(3)
@@ -143,7 +155,7 @@ def main():
     if prompt:
         try:
             with st.spinner('Comprobando la base y consultando las fuentes…'):
-                result = service.answer(prompt, st.session_state['session_id'], plan)
+                result = service.answer(prompt, st.session_state['session_id'], plan, use_ai=query_mode == 'Consulta con IA')
             st.session_state['messages'].append(result)
             st.session_state['messages'] = st.session_state['messages'][-8:]
         except ValueError as error:
