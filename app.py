@@ -43,7 +43,7 @@ def configuration():
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-05.remove-origin-note.1'):
+def shared_service(settings, revision='2026-11-05.ai-only.1'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 
@@ -65,7 +65,7 @@ def render(result, index):
         st.caption('Consulta interpretada con IA · Cálculos verificados por el motor de datos'
                    + (' · Resumen generado con IA' if result.get('ai_summarized') else ''))
     elif not result.get('private'):
-        st.caption('Consulta básica · Sin consumo de IA')
+        st.caption('Consulta sin respuesta de IA')
     for warning in result['warnings']:
         if 'registros están identificados como no_secop por la base' not in warning:
             st.warning(warning)
@@ -108,6 +108,7 @@ def main():
     st.title('Consulta contractual')
     st.caption('Piloto público · Contratos y obligaciones con fuentes verificables')
     settings = configuration()
+    settings['AI_ONLY'] = True
     service = shared_service(settings)
     st.session_state.setdefault('session_id', uuid.uuid4().hex)
     st.session_state.setdefault('messages', [])
@@ -116,34 +117,11 @@ def main():
     with st.container():
         typed = st.chat_input('Pregunta por un contrato, un total, un plazo o sus obligaciones', max_chars=1200)
     if available:
-        st.caption('La consulta se resuelve automáticamente. La IA se utiliza cuando hace falta interpretar la pregunta; hasta 5 consultas con IA por sesión cada hora.')
+        st.caption('Todas las preguntas se interpretan y responden con IA. Hasta 5 preguntas por sesión cada hora.')
     else:
-        st.info('Consulta básica disponible. El módulo de IA necesita una conexión habilitada y presupuesto disponible; puedes seguir usando las búsquedas y los filtros.')
+        st.info('La IA no está disponible en este momento. No se resolverán consultas hasta recuperar la conexión o el presupuesto.')
     prompt = None
     plan = None
-    with st.expander('Buscar y calcular con filtros'):
-        with st.form('filters'):
-            left, right = st.columns(2)
-            reference = left.text_input('Referencia o ID contractual', placeholder='ATENEA-003-2025')
-            object_text = right.text_input('Palabras del objeto')
-            provider = left.text_input('Proveedor')
-            year = right.number_input('Año (0 = todos)', min_value=0, max_value=2100, value=0, step=1)
-            status = left.text_input('Estado')
-            department = right.text_input('Dependencia solicitante del PAA')
-            modality = left.text_input('Modalidad')
-            days = right.number_input('Terminan en próximos días (0 = sin filtro)', min_value=0, max_value=366, value=0, step=1)
-            operation = left.selectbox('Qué consultar', ['Contratos', 'Cantidad', 'Valor reportado (COP)', 'Pagado reportado (COP)', 'Obligaciones específicas', 'Documentos SECOP', 'Agrupar'])
-            group = right.selectbox('Agrupar por', ['dependencia', 'anio', 'estado', 'proveedor', 'modalidad', 'tipo'])
-            measure = right.selectbox('Medida al agrupar', ['contratos', 'valor', 'pagado'])
-            if st.form_submit_button('Consultar con filtros', type='primary'):
-                operations = {'Contratos': 'listar', 'Cantidad': 'contar', 'Valor reportado (COP)': 'sumar', 'Pagado reportado (COP)': 'sumar', 'Obligaciones específicas': 'obligaciones', 'Documentos SECOP': 'documentos', 'Agrupar': 'agrupar'}
-                plan = spec(operacion=operations[operation], referencia=reference.strip() or None,
-                            texto=object_text.strip() or None, proveedor=provider.strip() or None,
-                            anio=int(year) or None, estado=status.strip() or None, dependencia=department.strip() or None,
-                            modalidad=modality.strip() or None, vence_dias=int(days) or None,
-                            agrupar_por=group if operation == 'Agrupar' else None,
-                            medida=measure if operation == 'Agrupar' else 'valor' if operation.startswith('Valor') else 'pagado' if operation.startswith('Pagado') else 'contratos')
-                prompt = 'Consulta mediante filtros'
     if typed:
         prompt, plan = typed, None
     if prompt:
@@ -156,7 +134,7 @@ def main():
             st.error(str(error))
         except Exception:
             # Ningún traceback, solicitud, credencial o contenido privado llega al visitante.
-            st.error('No fue posible completar esta consulta. Intenta nuevamente o utiliza los filtros.')
+            st.error('No fue posible completar esta consulta. Intenta nuevamente.')
     for index, result in enumerate(st.session_state['messages']):
         with st.chat_message('user'):
             st.text(result.get('question', 'Consulta'))

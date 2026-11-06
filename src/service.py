@@ -16,6 +16,11 @@ class ChatService:
         if private_request(question):
             return {'text': 'Este piloto no publica identificaciones personales, credenciales, datos bancarios ni la base completa. Puedes consultar información contractual y obligaciones con fuentes.',
                     'rows': [], 'warnings': [], 'sources': [], 'private': True, 'question': '[consulta excluida por privacidad]'}
+        ai_only = self.settings.get('AI_ONLY') is True
+        if ai_only:
+            if not enabled(self.settings) or self.governor.credit_blocked:
+                raise ValueError('La IA no está disponible. No se ejecutó ninguna consulta. Intenta nuevamente cuando se restablezca la conexión o el presupuesto.')
+            plan, use_ai = None, True
         requested_ai = use_ai is not False
         automatic = use_ai is None
         if automatic and plan is None:
@@ -37,6 +42,8 @@ class ChatService:
                         plan = self.assistant.interpret(question, redactor)
                         interpreted = True
                     except ValueError as error:
+                        if ai_only:
+                            raise ValueError('No fue posible interpretar la pregunta con IA. Reformúlala o intenta nuevamente; no se ejecutó una consulta básica.') from None
                         warnings.append(str(error))
                         use_ai = False
                         plan = (spec(operacion='aclarar', aclaracion='No fue posible interpretar toda la pregunta. Usa los filtros para conservar exactamente las condiciones de tu búsqueda.')
@@ -109,7 +116,7 @@ class ChatService:
                         text += '\n\nLa tabla contiene los demás resultados mostrados y sus objetos.'
                 else:
                     text += ' No hay coincidencias para los filtros indicados; esto no demuestra ausencia de contratos fuera de esta base.'
-            if use_ai and result['matching_contracts'] and not named_count and not combined_list and not object_list:
+            if use_ai and (ai_only or (result['matching_contracts'] and not named_count and not combined_list and not object_list)):
                 # El modelo recibe una muestra limitada; la tabla conserva el resultado del motor.
                 facts = {'operation': plan.operacion, 'matching_contracts': result['matching_contracts'],
                          'measure': result['measure'], 'rows': display_rows[:10], 'documents': documents[:12],
@@ -120,7 +127,11 @@ class ChatService:
                     if summary:
                         text = summary
                         summarized = True
+                    elif ai_only:
+                        raise ValueError('La IA no produjo una respuesta verificable. Intenta nuevamente.')
                 except ValueError as error:
+                    if ai_only:
+                        raise ValueError('No fue posible generar una respuesta verificable con IA. Intenta nuevamente.') from None
                     warnings.append(str(error))
             return self._result(snapshot, freshness, question, text, display_rows, warnings, sources, result['filters'], interpreted, summarized)
 

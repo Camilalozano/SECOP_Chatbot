@@ -30,8 +30,8 @@ class AppTests(unittest.TestCase):
             self.assertTrue(app.session_state['messages'][-1]['ai_interpreted'])
             self.assertEqual(interpret.call_count, 1)
             app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
-            self.assertFalse(app.session_state['messages'][-1]['ai_interpreted'])
-            self.assertEqual(interpret.call_count, 1)
+            self.assertTrue(app.session_state['messages'][-1]['ai_interpreted'])
+            self.assertEqual(interpret.call_count, 2)
 
     def test_oracle_timestamp_is_shown_in_bogota(self):
         from app import local_time
@@ -48,21 +48,14 @@ class AppTests(unittest.TestCase):
         self.assertFalse(app.exception)
         return app
 
-    def test_public_without_authentication_or_key_and_count(self):
+    def test_public_without_key_does_not_answer_without_ai(self):
         app = self.start()
         self.assertFalse(any('contraseña' in x.label.lower() for x in app.text_input))
+        self.assertFalse(any(b.label == 'Consultar con filtros' for b in app.button))
         app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
         self.assertFalse(app.exception)
-        self.assertEqual(app.session_state['messages'][-1]['rows'][0]['resultado'], 2)
-        self.assertEqual(len(app.get('download_button')), 1)
-
-    def test_filters_export_and_redaction(self):
-        app = self.start()
-        next(t for t in app.text_input if t.label == 'Referencia o ID contractual').set_value('ATENEA-003-2025')
-        next(b for b in app.button if b.label == 'Consultar con filtros').click().run()
-        self.assertFalse(app.exception)
-        self.assertEqual(len(app.session_state['messages'][-1]['rows']), 1)
-        self.assertNotIn('1111111111', str(app.session_state['messages']))
+        self.assertEqual(app.session_state['messages'], [])
+        self.assertTrue(any('IA no está disponible' in x.value for x in app.error))
 
     def test_no_connection_actionable_error(self):
         app = AppTest.from_file(APP, default_timeout=20)
@@ -70,4 +63,4 @@ class AppTests(unittest.TestCase):
         app.run()
         app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
         self.assertFalse(app.exception)
-        self.assertTrue(any('no está configurada' in x.value for x in app.error))
+        self.assertTrue(any('IA no está disponible' in x.value for x in app.error))
