@@ -28,6 +28,37 @@ def spec(**kwargs):
     return QuerySpec(**{**{k: None for k in QuerySpec.model_fields}, 'operacion': 'listar', 'medida': 'contratos', **kwargs})
 
 
+def basic_plan(question):
+    """Solo rutas completas y conocidas: nunca se descartan filtros no entendidos."""
+    q = re.sub(r'\s+', ' ', fold(question)).strip(' ¿?¡!.')
+    year = r'(?: (?:EN|DE|DEL|PARA)(?: EL ANO)? (20\d{2}))?'
+    patterns = [
+        (r'(?:CUANTOS CONTRATOS (?:HAY|EXISTEN)|CANTIDAD DE CONTRATOS|TOTAL DE CONTRATOS)' + year, 'contar', 'contratos'),
+        (r'(?:LISTAR CONTRATOS|TODOS LOS CONTRATOS|CONTRATOS)' + year, 'listar', 'contratos'),
+        (r'(?:VALOR TOTAL|SUMA DEL VALOR) DE (?:LOS )?CONTRATOS' + year, 'sumar', 'valor'),
+        (r'VALOR CONTRATADO' + year, 'sumar', 'valor'),
+        (r'TOTAL PAGADO' + year, 'sumar', 'pagado'),
+    ]
+    for pattern, operation, measure in patterns:
+        if match := re.fullmatch(pattern, q):
+            return spec(operacion=operation, medida=measure, anio=int(match[1]) if match[1] else None)
+    if re.fullmatch(r'CONTRATOS QUE TERMINAN EN \d{1,3} DIAS', q):
+        return spec(vence_dias=int(re.search(r'\d+', q)[0]))
+    if match := re.fullmatch(r'(?:CANTIDAD(?: DE CONTRATOS)?|CONTRATOS|VALOR|TOTAL PAGADO) POR (ANO|DEPENDENCIA|MODALIDAD|PROVEEDOR|ESTADO|TIPO)', q):
+        return spec(operacion='agrupar', agrupar_por='anio' if match[1] == 'ANO' else match[1].lower(),
+                    medida='valor' if q.startswith('VALOR') else 'pagado' if q.startswith('TOTAL PAGADO') else 'contratos')
+    if match := re.fullmatch(r'CUANTOS CONTRATOS (TERMINADOS|LIQUIDADOS|CERRADOS|EN EJECUCION) HAY' + year, q):
+        return spec(operacion='contar', estado=match[1][:-2] if match[1].endswith('OS') else match[1], anio=int(match[2]) if match[2] else None)
+    if q in ('OBLIGACIONES', 'CUALES SON LAS OBLIGACIONES', 'CONSULTAR DOCUMENTOS SECOP'):
+        return spec(operacion='aclarar', aclaracion='Indica la referencia completa del contrato para consultar sus documentos u obligaciones.')
+    reference = r'(ATENEA-[A-Z0-9]+(?:-[A-Z0-9]+)*-20\d{2}|CO1\.PCCNTR\.\d+)'
+    if match := re.fullmatch(r'(?:CONSULTA )?' + reference, q):
+        return spec(referencia=match[1])
+    if match := re.fullmatch(r'(OBLIGACIONES(?: ESPECIFICAS)?|DOCUMENTOS)(?: DEL CONTRATO| DE)? ' + reference, q):
+        return spec(operacion='obligaciones' if match[1].startswith('OBLIGACIONES') else 'documentos', referencia=match[2])
+    return None
+
+
 def fallback(question):
     q = fold(question)
     if re.search(r'PROMEDIO|PORCENTAJE|CUMPLIMIENTO|LEGALIDAD|RIESGO|COMPARA|VALOR (?:INICIAL|VIGENTE)|SUPERVISOR|MAS DE|MENOS DE|MAYOR QUE|MENOR QUE', q):

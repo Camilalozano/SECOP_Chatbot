@@ -1,6 +1,6 @@
 import re
 from .ai import Assistant, enabled
-from .query import fallback, execute
+from .query import fallback, execute, basic_plan, spec
 from .privacy import private_request
 
 
@@ -17,6 +17,9 @@ class ChatService:
             return {'text': 'Este piloto no publica identificaciones personales, credenciales, datos bancarios ni la base completa. Puedes consultar información contractual y obligaciones con fuentes.',
                     'rows': [], 'warnings': [], 'sources': [], 'private': True, 'question': '[consulta excluida por privacidad]'}
         requested_ai = use_ai is not False
+        automatic = use_ai is None
+        if automatic and plan is None:
+            plan = basic_plan(question)
         use_ai = plan is None and requested_ai and enabled(self.settings) and not self.governor.credit_blocked
         interpreted = False
         summarized = False
@@ -36,9 +39,11 @@ class ChatService:
                     except ValueError as error:
                         warnings.append(str(error))
                         use_ai = False
-                        plan = fallback(redactor.clean(question))
+                        plan = (spec(operacion='aclarar', aclaracion='No fue posible interpretar toda la pregunta. Usa los filtros para conservar exactamente las condiciones de tu búsqueda.')
+                                if automatic else fallback(redactor.clean(question)))
                 else:
-                    plan = fallback(redactor.clean(question))
+                    plan = (spec(operacion='aclarar', aclaracion='Esta pregunta necesita interpretación con IA, que no está disponible en este momento. Usa los filtros para precisar la consulta.')
+                            if automatic else fallback(redactor.clean(question)))
             if plan.operacion == 'aclarar' or plan.aclaracion:
                 return self._result(snapshot, freshness, question, redactor.clean(plan.aclaracion or 'Indica con más precisión qué información necesitas.'), [], warnings, ai_interpreted=interpreted)
             result = execute(snapshot.rows, plan)

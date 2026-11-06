@@ -43,7 +43,7 @@ def configuration():
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-05.supplier-names.1'):
+def shared_service(settings, revision='2026-11-05.automatic.1'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 
@@ -113,11 +113,8 @@ def main():
     available = enabled(settings) and service.governor.ai_available(settings['AI_RUN_BUDGET_USD'], settings['AI_TURN_RESERVE_USD'])
     st.subheader('Pregúntale a la base de datos')
     if available:
-        st.info('IA disponible · Hasta 5 preguntas por sesión cada hora. Los cálculos se realizan sobre la base consultada.')
-        query_mode = st.radio('Modo de consulta', ['Consulta con IA', 'Consulta básica'], horizontal=True, key='query_mode')
-        st.caption('Puedes combinar año, proveedor, estado, dependencia o modalidad. Ejemplo: ¿Cuántos contratos de universidades están en ejecución en 2026?')
+        st.caption('La consulta se resuelve automáticamente. La IA se utiliza cuando hace falta interpretar la pregunta; hasta 5 consultas con IA por sesión cada hora.')
     else:
-        query_mode = 'Consulta básica'
         st.info('Consulta básica disponible. El módulo de IA necesita una conexión habilitada y presupuesto disponible; puedes seguir usando las búsquedas y los filtros.')
     st.caption('No ingreses cédulas, datos bancarios ni información privada. Este piloto ofrece información contractual y no certifica cumplimiento ni emite conceptos jurídicos.')
     prompt = None
@@ -151,7 +148,7 @@ def main():
     if prompt:
         try:
             with st.spinner('Comprobando la base y consultando las fuentes…'):
-                result = service.answer(prompt, st.session_state['session_id'], plan, use_ai=query_mode == 'Consulta con IA')
+                result = service.answer(prompt, st.session_state['session_id'], plan)
             st.session_state['messages'].append(result)
             st.session_state['messages'] = st.session_state['messages'][-8:]
         except ValueError as error:

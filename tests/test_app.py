@@ -12,7 +12,7 @@ APP = str(Path(__file__).resolve().parents[1] / 'app.py')
 
 
 class AppTests(unittest.TestCase):
-    def test_public_ai_module_and_basic_mode_selector(self):
+    def test_public_automatic_routing_without_mode_selector(self):
         from datetime import datetime, timedelta, timezone
         from src.query import spec
         app = self.start()
@@ -25,11 +25,10 @@ class AppTests(unittest.TestCase):
              patch('src.ai.Assistant.explain', return_value='Hay 2 contratos coincidentes.'):
             app.run()
             self.assertFalse(app.exception)
-            self.assertTrue(any(r.label == 'Modo de consulta' for r in app.radio))
-            app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
+            self.assertFalse(any(r.label == 'Modo de consulta' for r in app.radio))
+            app.chat_input[0].set_value('Cuántos contratos de universidades hay en 2026').run()
             self.assertTrue(app.session_state['messages'][-1]['ai_interpreted'])
             self.assertEqual(interpret.call_count, 1)
-            next(r for r in app.radio if r.label == 'Modo de consulta').set_value('Consulta básica').run()
             app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
             self.assertFalse(app.session_state['messages'][-1]['ai_interpreted'])
             self.assertEqual(interpret.call_count, 1)
