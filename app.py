@@ -43,7 +43,7 @@ def configuration():
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-06.ai-diagnostics.2'):
+def shared_service(settings, revision='2026-11-06.ai-value-slots.1'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 

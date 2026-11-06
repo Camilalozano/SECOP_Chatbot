@@ -9,6 +9,16 @@ from src.limits import Governor
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_summary_inserts_exact_verified_values_from_model_slots(self):
+        import json
+        client = Mock()
+        def create(**kwargs):
+            evidence = json.loads(kwargs['input'])['evidencia']
+            return SimpleNamespace(output_text='Se encontraron ' + evidence['matching_contracts'] + ' contratos.')
+        client.responses.create.side_effect = create
+        a = Assistant(self.settings(), Governor(), client)
+        self.assertEqual(a.explain('Cuántos', {'matching_contracts': 24}, Redactor()), 'Se encontraron 24 contratos.')
+
     def test_unnecessary_clarification_gets_reviewed_by_ai(self):
         client = Mock()
         client.responses.parse.side_effect = [

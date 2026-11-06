@@ -121,9 +121,9 @@ class ChatService:
             if use_ai and (ai_only or (result['matching_contracts'] and not named_count and not combined_list and not object_list)):
                 # El modelo recibe una muestra limitada; la tabla conserva el resultado del motor.
                 facts = {'operation': plan.operacion, 'matching_contracts': result['matching_contracts'],
-                         'measure': result['measure'], 'rows': display_rows[:10], 'documents': documents[:12],
+                         'measure': result['measure'], 'rows': display_rows[:3], 'documents': documents[:12],
                          'warnings': warnings, 'version': snapshot.sha256[:12], 'filters': result['filters'],
-                         'sample_only': len(display_rows) > 10}
+                         'sample_only': len(display_rows) > 3}
                 try:
                     summary = self.assistant.explain(question, facts, redactor)
                     if summary:
