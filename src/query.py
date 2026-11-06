@@ -31,6 +31,10 @@ def spec(**kwargs):
 def basic_plan(question):
     """Solo rutas completas y conocidas: nunca se descartan filtros no entendidos."""
     q = re.sub(r'\s+', ' ', fold(question)).strip(' ¿?¡!.')
+    # Pregunta completa de existencia y objeto: no requiere dos llamadas a IA.
+    university = re.fullmatch(r'(?:HAY|CUALES SON LOS) CONTRATOS (?:CON|DE) (?:LA )?(UNIVERSIDAD [A-Z][A-Z .\-]{1,120}?)(?:\? (?:DE QUE SON|CUAL ES SU OBJETO))?', q)
+    if university and not re.search(r'\b(?:VIGENTE|VIGENTES|ACTIVO|ACTIVOS|EN|POR|Y|SIN|EXCEPTO|SOLO|MAYOR|MENOR)\b', university[1]):
+        return spec(proveedor=university[1])
     year = r'(?: (?:EN|DE|DEL|PARA)(?: EL ANO)? (20\d{2}))?'
     patterns = [
         (r'(?:CUANTOS CONTRATOS (?:HAY|EXISTEN)|CANTIDAD DE CONTRATOS|TOTAL DE CONTRATOS)' + year, 'contar', 'contratos'),

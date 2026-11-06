@@ -100,7 +100,16 @@ class ChatService:
             combined_list = plan.operacion == 'listar' and re.search(r'\bCUANTOS\b', q) and re.search(r'\bCUALES\b', q)
             if combined_list:
                 text = f"Se encontraron {result['matching_contracts']} contratos en la base consultada. La tabla detalla los contratos coincidentes."
-            if use_ai and result['matching_contracts'] and not named_count and not combined_list:
+            object_list = plan.operacion == 'listar' and bool(re.search(r'DE QUE SON|\bOBJETOS?\b', q))
+            if object_list:
+                text = f"Se encontraron {result['matching_contracts']} contratos en la base consultada."
+                if display_rows:
+                    text += '\n\n' + '\n\n'.join(f"{r['referencia']} — {r.get('objeto') or 'Objeto no informado por la fuente.'}" for r in display_rows[:5])
+                    if len(display_rows) > 5:
+                        text += '\n\nLa tabla contiene los demás resultados mostrados y sus objetos.'
+                else:
+                    text += ' No hay coincidencias para los filtros indicados; esto no demuestra ausencia de contratos fuera de esta base.'
+            if use_ai and result['matching_contracts'] and not named_count and not combined_list and not object_list:
                 # El modelo recibe una muestra limitada; la tabla conserva el resultado del motor.
                 facts = {'operation': plan.operacion, 'matching_contracts': result['matching_contracts'],
                          'measure': result['measure'], 'rows': display_rows[:10], 'documents': documents[:12],
