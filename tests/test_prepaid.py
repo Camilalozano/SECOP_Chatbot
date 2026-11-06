@@ -38,15 +38,23 @@ class PrepaidTests(unittest.TestCase):
                 s = settings(); s[field] = value
                 self.assertFalse(enabled(s))
 
-    def test_ai_query_combines_filters_and_explains_computed_fact(self):
+    def test_ai_query_combines_filters_with_verified_supplier_count(self):
         service, assistant = self.service()
         result = service.answer('Cuántos contratos de universidades están en ejecución en 2025', 's', use_ai=True)
         self.assertTrue(result['ai_interpreted'])
-        self.assertTrue(result['ai_summarized'])
+        self.assertFalse(result['ai_summarized'])
         self.assertEqual(result['rows'][0]['resultado'], 1)
         self.assertEqual(result['filters']['anio'], 2025)
-        self.assertEqual(assistant.explain.call_args.args[1]['matching_contracts'], 1)
+        assistant.explain.assert_not_called()
+        self.assertIn('1 contratos', result['text'])
         self.assertEqual(service.governor.reserved, 0.05)
+
+    def test_general_count_still_explains_computed_fact(self):
+        service, assistant = self.service()
+        assistant.interpret.return_value = spec(operacion='contar', anio=2025)
+        result = service.answer('Cuántos contratos hay en 2025', 's', use_ai=True)
+        self.assertTrue(result['ai_summarized'])
+        self.assertEqual(assistant.explain.call_args.args[1]['matching_contracts'], 2)
 
     def test_basic_mode_and_filters_never_call_ai_with_a_valid_key(self):
         service, assistant = self.service()
