@@ -130,7 +130,9 @@ class ChatService:
                         text = summary
                         summarized = True
                     elif ai_only:
-                        raise AIResponseError('La IA respondió, pero la redacción no superó la verificación de cifras o citas.')
+                        reason = getattr(self.assistant, 'last_validation', '')
+                        reason = reason if isinstance(reason, str) else ''
+                        raise AIResponseError('No se pudo validar la respuesta de IA: ' + (reason or 'redacción no verificable') + '.')
                 except ValueError as error:
                     if ai_only:
                         if isinstance(error, AIResponseError):

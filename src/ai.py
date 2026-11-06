@@ -169,13 +169,18 @@ class Assistant:
                 instructions=instructions + (' Revisión: la redacción anterior no pasó la verificación. Usa únicamente números y citas literales presentes en la evidencia.' if attempt else ''),
                 input=masked[:26000], max_output_tokens=1200, reasoning={'effort': 'minimal'})
                 answer = redactor.clean(response.output_text)
+                self.last_validation = 'respuesta vacía o incompleta' if not answer else 'cifras o citas no verificables'
                 unknown_slots = set(re.findall(r'⟦VALOR_[A-Z]+⟧', answer)) - slots.keys()
                 if unknown_slots:
+                    self.last_validation = 'marcadores de cifras desconocidos'
                     continue
                 answer = re.sub(r'⟦VALOR_[A-Z]+⟧', lambda m: slots[m[0]], answer)
                 # 05 y 5 representan el mismo número; siguen rechazándose cifras nuevas.
                 allowed = {int(n) for n in re.findall(r'\d+', payload)}
                 known = {r['cita'] for r in safe.get('documents', [])}
+                if answer:
+                    self.last_validation = ('cifras distintas de la evidencia' if any(int(n) not in allowed for n in re.findall(r'\d+', answer))
+                                            else 'citas documentales desconocidas')
                 if (answer and all(int(n) in allowed for n in re.findall(r'\d+', answer))
                         and all(c in known for c in re.findall(r'\[(D\d+)\]', answer))):
                     return answer[:1600]
