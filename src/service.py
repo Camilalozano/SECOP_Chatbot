@@ -124,6 +124,10 @@ class ChatService:
                          'measure': result['measure'], 'rows': display_rows[:3], 'documents': documents[:12],
                          'warnings': warnings, 'version': snapshot.sha256[:12], 'filters': result['filters'],
                          'sample_only': len(display_rows) > 3}
+                if plan.operacion == 'listar':
+                    facts['rows'] = [{k: (str(row.get(k) or '')[:320] if k == 'objeto' else row.get(k))
+                                      for k in ('referencia', 'proveedor', 'objeto')}
+                                     for row in display_rows[:3]]
                 try:
                     summary = self.assistant.explain(question, facts, redactor)
                     if summary:

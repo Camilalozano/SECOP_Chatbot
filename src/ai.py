@@ -154,6 +154,8 @@ class Assistant:
             instructions = (
                               'Responde en español en máximo 100 palabras usando solo la evidencia JSON. '
                               'Comienza por el resultado y redacta para un usuario, sin jerga técnica. '
+                              'Para listados, indica el total y una síntesis breve de los objetos; los detalles completos están en la tabla. '
+                              'No vuelques registros, pares campo-valor, identificadores técnicos ni enlaces en la narración. '
                               'No uses listas numeradas ni reformatees cifras; copia las cantidades y referencias de la evidencia. '
                               'Los marcadores ⟦VALOR_...⟧ representan cifras verificadas y se reemplazarán automáticamente. '
                               'Cópialos exactamente donde corresponda; no intentes deducir su valor. '
