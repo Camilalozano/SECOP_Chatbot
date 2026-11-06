@@ -43,7 +43,7 @@ def configuration():
 
 
 @st.cache_resource(show_spinner=False)
-def shared_service(settings, revision='2026-11-05.supplier-objects.1'):
+def shared_service(settings, revision='2026-11-05.remove-origin-note.1'):
     return ChatService(CatalogStore(settings['ORACLE_PAR_URL'], (settings['OPENAI_API_KEY'],)),
                        Documents(), Governor(), settings)
 
@@ -67,7 +67,8 @@ def render(result, index):
     elif not result.get('private'):
         st.caption('Consulta básica · Sin consumo de IA')
     for warning in result['warnings']:
-        st.warning(warning)
+        if 'registros están identificados como no_secop por la base' not in warning:
+            st.warning(warning)
     rows = result['rows']
     if rows:
         public_rows = [{LABELS.get(k, {'resultado': 'Resultado', 'pagina': 'Página', 'archivo': 'Archivo', 'numero': 'Número', 'texto': 'Obligación específica', 'cita': 'Cita', 'fecha': 'Fecha de carga', 'asociacion': 'Asociación'}.get(k, k)): v

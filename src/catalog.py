@@ -115,9 +115,6 @@ def parse(data, secrets=()):
         result.append(public)
     if invalid_numbers:
         warnings.append(f'{invalid_numbers} valores monetarios vacíos o incompatibles se excluyen de las sumas; no se convierten en cero.')
-    outside_count = sum(r['origen'].lower() == 'no_secop' for r in result)
-    if outside_count:
-        warnings.append(f'{outside_count} registros están identificados como no_secop por la base: se incluyen en las cifras, pero no se les atribuyen documentos de SECOP II.')
     return result, redactor, warnings
 
 
