@@ -9,6 +9,24 @@ from src.limits import Governor
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_unnecessary_clarification_gets_reviewed_by_ai(self):
+        client = Mock()
+        client.responses.parse.side_effect = [
+            SimpleNamespace(output_parsed=spec(operacion='aclarar', aclaracion='Confirma si buscar en el objeto')),
+            SimpleNamespace(output_parsed=spec(operacion='contar', texto='inteligencia artificial'))]
+        result = Assistant(self.settings(), Governor(), client).interpret(
+            'cuantos contratos relacionados con inteligencia artificial hay en atenea?', Redactor())
+        self.assertEqual(result.texto, 'inteligencia artificial')
+        self.assertEqual(result.operacion, 'contar')
+        self.assertEqual(client.responses.parse.call_count, 2)
+        self.assertFalse(client.responses.parse.call_args.kwargs['store'])
+
+    def test_review_preserves_real_unsupported_question(self):
+        client = Mock()
+        client.responses.parse.return_value = SimpleNamespace(output_parsed=spec(operacion='aclarar', aclaracion='No se puede calcular cumplimiento'))
+        result = Assistant(self.settings(), Governor(), client).interpret('Porcentaje de cumplimiento', Redactor())
+        self.assertEqual(result.operacion, 'aclarar')
+
     def settings(self):
         return {'OPENAI_API_KEY': 'sk-fake', 'AI_ENABLED': True, 'INCLUDED_CREDITS_ONLY_VERIFIED': True,
                 'NO_PAID_FALLBACK_VERIFIED': True, 'HOSTING_AND_ORACLE_QUOTA_VERIFIED': True,
