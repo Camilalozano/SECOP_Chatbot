@@ -6,6 +6,11 @@ from openai import OpenAI, OpenAIError
 from .query import QuerySpec
 
 
+class AIResponseError(ValueError):
+    """Diagnóstico seguro: nunca incluye preguntas, documentos ni respuesta del proveedor."""
+    pass
+
+
 def enabled(settings):
     # Créditos incluidos y prepago son modalidades distintas; no se declara
     # falsamente que un saldo comprado viene incluido en una suscripción.
@@ -152,7 +157,12 @@ class Assistant:
         code = getattr(error, 'code', '')
         if code in {'insufficient_quota', 'credit_balance_exhausted', 'billing_hard_limit_reached'}:
             self.governor.stop_ai()
+            raise AIResponseError('La API de IA informó que no hay cuota o créditos disponibles.') from None
         if getattr(error, 'status_code', None) in {401, 403}:
             self.governor.stop_ai()
-            raise ValueError('La conexión de IA necesita revisar la clave API o sus permisos. Los filtros siguen disponibles.') from None
-        raise ValueError('IA temporalmente no disponible. Los filtros y resultados calculados siguen disponibles.') from None
+            raise AIResponseError('La conexión de IA necesita revisar la clave API o sus permisos.') from None
+        if getattr(error, 'status_code', None) == 429:
+            raise AIResponseError('La API de IA alcanzó temporalmente su límite de solicitudes. Intenta en un momento.') from None
+        if getattr(error, 'status_code', None) == 400:
+            raise AIResponseError('La API de IA rechazó el formato de la solicitud. Se requiere corregir la integración.') from None
+        raise AIResponseError('La API de IA no pudo completar la solicitud por un error de conexión o de servicio.') from None

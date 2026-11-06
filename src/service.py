@@ -1,5 +1,5 @@
 import re
-from .ai import Assistant, enabled
+from .ai import Assistant, enabled, AIResponseError
 from .query import fallback, execute, basic_plan, spec
 from .privacy import private_request, fold
 
@@ -130,9 +130,11 @@ class ChatService:
                         text = summary
                         summarized = True
                     elif ai_only:
-                        raise ValueError('La IA no produjo una respuesta verificable. Intenta nuevamente.')
+                        raise AIResponseError('La IA respondió, pero la redacción no superó la verificación de cifras o citas.')
                 except ValueError as error:
                     if ai_only:
+                        if isinstance(error, AIResponseError):
+                            raise error from None
                         raise ValueError('No fue posible generar una respuesta verificable con IA. Intenta nuevamente.') from None
                     warnings.append(str(error))
             return self._result(snapshot, freshness, question, text, display_rows, warnings, sources, result['filters'], interpreted, summarized)
