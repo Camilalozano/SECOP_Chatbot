@@ -112,11 +112,12 @@ def main():
     st.session_state.setdefault('messages', [])
     available = enabled(settings) and service.governor.ai_available(settings['AI_RUN_BUDGET_USD'], settings['AI_TURN_RESERVE_USD'])
     st.subheader('Pregúntale a la base de datos')
+    with st.container():
+        typed = st.chat_input('Pregunta por un contrato, un total, un plazo o sus obligaciones', max_chars=1200)
     if available:
         st.caption('La consulta se resuelve automáticamente. La IA se utiliza cuando hace falta interpretar la pregunta; hasta 5 consultas con IA por sesión cada hora.')
     else:
         st.info('Consulta básica disponible. El módulo de IA necesita una conexión habilitada y presupuesto disponible; puedes seguir usando las búsquedas y los filtros.')
-    st.caption('No ingreses cédulas, datos bancarios ni información privada. Este piloto ofrece información contractual y no certifica cumplimiento ni emite conceptos jurídicos.')
     prompt = None
     plan = None
     with st.expander('Buscar y calcular con filtros'):
@@ -142,7 +143,6 @@ def main():
                             agrupar_por=group if operation == 'Agrupar' else None,
                             medida=measure if operation == 'Agrupar' else 'valor' if operation.startswith('Valor') else 'pagado' if operation.startswith('Pagado') else 'contratos')
                 prompt = 'Consulta mediante filtros'
-    typed = st.chat_input('Pregunta por un contrato, un total, un plazo o sus obligaciones', max_chars=1200)
     if typed:
         prompt, plan = typed, None
     if prompt:
