@@ -135,7 +135,11 @@ class ChatService:
                     if ai_only:
                         if isinstance(error, AIResponseError):
                             raise error from None
-                        raise ValueError('No fue posible generar una respuesta verificable con IA. Intenta nuevamente.') from None
+                        trace = error.__traceback__
+                        while trace and trace.tb_next:
+                            trace = trace.tb_next
+                        point = (trace.tb_frame.f_code.co_name + ':' + str(trace.tb_lineno)) if trace else 'sin-traza'
+                        raise ValueError('No fue posible generar una respuesta verificable con IA. Referencia de diagnóstico: ' + point) from None
                     warnings.append(str(error))
             return self._result(snapshot, freshness, question, text, display_rows, warnings, sources, result['filters'], interpreted, summarized)
 
