@@ -132,9 +132,15 @@ def execute(rows, plan):
                 clauses.append(f'contains(strip_accents(upper("{key}")), ?)')
                 args.append(fold(value))
         if plan.texto:
-            for term in fold(plan.texto).split():
-                clauses.append('contains(strip_accents(upper(objeto)), ?)')
-                args.append(term)
+            terms = re.findall(r'[A-Z0-9]+', fold(plan.texto))
+            connectors = {'DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'EN', 'CON'}
+            terms = [term for term in terms if term not in connectors]
+            if not terms:
+                raise ValueError('Indica palabras significativas del tema.')
+            gap = r'(?:\s+(?:DE|DEL|LA|LAS|LOS|EL|Y|EN|CON)){0,3}\s+'
+            phrase = r'\b' + gap.join(re.escape(term) for term in terms) + r'\b'
+            clauses.append("regexp_matches(regexp_replace(strip_accents(upper(objeto)), '[^A-Z0-9]+', ' ', 'g'), ?)")
+            args.append(phrase)
         if plan.anio:
             clauses.append('anio = ?'); args.append(plan.anio)
         if plan.vence_dias:

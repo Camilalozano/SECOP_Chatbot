@@ -63,7 +63,7 @@ class ChatService:
                 plan = plan.model_copy(update={'estado': 'En ejecución'})
             criteria = []
             if plan.texto:
-                criteria.append(f'Búsqueda temática por palabras en el objeto contractual: «{plan.texto}». No es una clasificación exhaustiva de temas ni una búsqueda en todos los documentos de SECOP.')
+                criteria.append(f'Búsqueda temática por frase en el objeto contractual: «{plan.texto}», admitiendo conectores como «de». No es una clasificación exhaustiva de temas ni una búsqueda en todos los documentos de SECOP.')
             if re.search(r'\b(?:VIGENTES?|ACTIVOS?)\b', q) and plan.estado and fold(plan.estado).strip() == 'EN EJECUCION':
                 criteria.append('Se interpreta «vigentes/activos» como estado reportado «En ejecución», sin comprobar vigencia por fechas ni emitir una conclusión jurídica.')
             if plan.proveedor and fold(plan.proveedor).strip() == 'UNIVERSIDAD':

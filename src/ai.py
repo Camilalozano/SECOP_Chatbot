@@ -55,7 +55,8 @@ dependencia solicitante del PAA, modalidad, año contractual y vencimientos futu
 Medidas: contratos (conteo), valor (valor contractual reportado COP), pagado (pagado reportado COP).
 POLÍTICA DE BÚSQUEDA: para temas ("relacionados con", "sobre", "de tecnología", "inteligencia artificial", etc.),
 aplica texto con las palabras sustantivas del tema al objeto contractual. No pidas elegir columna ni confirmar esta búsqueda.
-El filtro texto exige todas las palabras, sin distinguir tildes o mayúsculas; elimina conectores como "de", "la", "con".
+El filtro texto busca una frase ordenada, sin distinguir tildes o mayúsculas, admitiendo conectores como "de" entre palabras.
+Conserva la frase del tema; no agregues sinónimos en el mismo filtro ni palabras de la pregunta como "relacionados".
 No confundas búsqueda por palabras con clasificación semántica exhaustiva. El servidor mostrará ese alcance.
 "en atenea", "en la agencia", "en esta base" indican el ámbito de esta misma base y no requieren confirmación.
 Resuelve errores ortográficos leves por contexto. No conviertas una pregunta ejecutable en una discusión sobre sus posibles interpretaciones.
