@@ -68,7 +68,17 @@ class ChatService:
                 else:
                     text = f"Se encontraron {result['matching_contracts']} contratos con estos filtros."
                     sources = [{'archivo': r['referencia'], 'url_secop': r['url_secop']} for r in display_rows if r.get('url_secop')]
-            if use_ai and result['matching_contracts']:
+            named_count = plan.operacion == 'contar' and bool(plan.proveedor)
+            if named_count:
+                text = (f"En la base consultada se encontraron {result['matching_contracts']} contratos "
+                        f"con todas las palabras del nombre «{plan.proveedor}» en el proveedor registrado. "
+                        'La búsqueda admite nombres intermedios y apellidos en distinto orden.')
+                if not result['matching_contracts']:
+                    text += ' No encontrar coincidencias en esta base no demuestra que la persona nunca haya contratado.'
+                elif len(display_rows) > 1:
+                    warnings.append('Hay varios nombres de proveedor coincidentes. Revisa el desglose y precisa el nombre completo; no se ha verificado que correspondan a una misma persona.')
+                text += ' El resultado se limita a los contratos contenidos en esta base.'
+            if use_ai and result['matching_contracts'] and not named_count:
                 # El modelo recibe una muestra limitada; la tabla conserva el resultado del motor.
                 facts = {'operation': plan.operacion, 'matching_contracts': result['matching_contracts'],
                          'measure': result['measure'], 'rows': display_rows[:10], 'documents': documents[:12],

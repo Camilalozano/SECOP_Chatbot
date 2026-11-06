@@ -83,7 +83,16 @@ def execute(rows, plan):
             key = re.sub(r'[\s-]+', '', plan.referencia).upper()
             clauses.append("(regexp_replace(upper(referencia), '[[:space:]-]+', '', 'g') = ? OR upper(id) = ?)")
             args.extend([key, plan.referencia.upper()])
-        for key in ('proveedor', 'estado', 'dependencia', 'modalidad'):
+        if plan.proveedor:
+            # Todas las palabras completas, sin exigir adyacencia ni orden.
+            # Así CAMILA LOZANO encuentra LOZANO, CAMILA ANDREA.
+            terms = set(re.findall(r'[A-Z0-9]+', fold(plan.proveedor)))
+            if not terms:
+                raise ValueError('Escribe al menos una palabra del nombre del proveedor.')
+            for term in sorted(terms):
+                clauses.append("contains(' ' || regexp_replace(strip_accents(upper(proveedor)), '[^A-Z0-9]+', ' ', 'g') || ' ', ?)")
+                args.append(' ' + term + ' ')
+        for key in ('estado', 'dependencia', 'modalidad'):
             if value := getattr(plan, key):
                 clauses.append(f'contains(strip_accents(upper("{key}")), ?)')
                 args.append(fold(value))
@@ -104,7 +113,8 @@ def execute(rows, plan):
             metric = 'count(*)' if plan.medida == 'contratos' else f'sum("{plan.medida}")'
             if plan.medida != 'contratos':
                 missing = con.execute(f'SELECT count(*) FROM contratos{where}' + (' AND ' if where else ' WHERE ') + f'"{plan.medida}" IS NULL', args).fetchone()[0]
-            group = f'"{plan.agrupar_por}"' if plan.operacion == 'agrupar' else None
+            group = ('"proveedor"' if plan.operacion == 'contar' and plan.proveedor
+                     else f'"{plan.agrupar_por}"' if plan.operacion == 'agrupar' else None)
             sql = f'SELECT {group + "," if group else ""}{metric} AS resultado FROM contratos{where}'
             if group:
                 sql += f' GROUP BY {group} ORDER BY resultado DESC NULLS LAST, {group} LIMIT 101'
