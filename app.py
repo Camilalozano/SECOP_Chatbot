@@ -121,10 +121,6 @@ def main():
         st.info('Consulta básica disponible. El módulo de IA necesita una conexión habilitada y presupuesto disponible; puedes seguir usando las búsquedas y los filtros.')
     st.caption('No ingreses cédulas, datos bancarios ni información privada. Este piloto ofrece información contractual y no certifica cumplimiento ni emite conceptos jurídicos.')
     prompt = None
-    cols = st.columns(3)
-    for col, text in zip(cols, ['¿Cuántos contratos hay en 2026?', 'Contratos que terminan en 60 días', 'Obligaciones de ATENEA-582-2025']):
-        if col.button(text, width='stretch'):
-            prompt = text
     plan = None
     with st.expander('Buscar y calcular con filtros'):
         with st.form('filters'):

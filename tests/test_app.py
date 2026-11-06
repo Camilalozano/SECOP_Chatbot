@@ -26,11 +26,11 @@ class AppTests(unittest.TestCase):
             app.run()
             self.assertFalse(app.exception)
             self.assertTrue(any(r.label == 'Modo de consulta' for r in app.radio))
-            next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+            app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
             self.assertTrue(app.session_state['messages'][-1]['ai_interpreted'])
             self.assertEqual(interpret.call_count, 1)
             next(r for r in app.radio if r.label == 'Modo de consulta').set_value('Consulta básica').run()
-            next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+            app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
             self.assertFalse(app.session_state['messages'][-1]['ai_interpreted'])
             self.assertEqual(interpret.call_count, 1)
 
@@ -52,7 +52,7 @@ class AppTests(unittest.TestCase):
     def test_public_without_authentication_or_key_and_count(self):
         app = self.start()
         self.assertFalse(any('contraseña' in x.label.lower() for x in app.text_input))
-        next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+        app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state['messages'][-1]['rows'][0]['resultado'], 2)
         self.assertEqual(len(app.get('download_button')), 1)
@@ -69,6 +69,6 @@ class AppTests(unittest.TestCase):
         app = AppTest.from_file(APP, default_timeout=20)
         app.secrets['ORACLE_PAR_URL'] = ''
         app.run()
-        next(b for b in app.button if b.label == '¿Cuántos contratos hay en 2026?').click().run()
+        app.chat_input[0].set_value('¿Cuántos contratos hay en 2026?').run()
         self.assertFalse(app.exception)
         self.assertTrue(any('no está configurada' in x.value for x in app.error))
