@@ -50,6 +50,20 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(a.explain('Cuántos', {'matching_contracts': 2}, Redactor()), '')
         self.assertFalse(client.responses.create.call_args.kwargs['store'])
 
+    def test_summary_review_recovers_without_accepting_new_numbers(self):
+        client = Mock()
+        client.responses.create.side_effect = [SimpleNamespace(output_text='Hay 999 contratos.'),
+                                                SimpleNamespace(output_text='Hay 2 contratos.')]
+        a = Assistant(self.settings(), Governor(), client)
+        self.assertEqual(a.explain('Cuántos', {'matching_contracts': 2}, Redactor()), 'Hay 2 contratos.')
+        self.assertEqual(client.responses.create.call_count, 2)
+
+    def test_leading_zero_date_format_does_not_reject_supported_number(self):
+        client = Mock()
+        client.responses.create.return_value = SimpleNamespace(output_text='Finaliza el 5 de noviembre de 2026.')
+        a = Assistant(self.settings(), Governor(), client)
+        self.assertTrue(a.explain('Fecha', {'fin': '2026-11-05'}, Redactor()))
+
     def test_unknown_document_citation_discards_summary(self):
         client = Mock()
         client.responses.create.return_value = SimpleNamespace(output_text='Revisa [D2].')
