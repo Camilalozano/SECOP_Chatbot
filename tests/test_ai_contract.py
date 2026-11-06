@@ -9,6 +9,13 @@ from src.limits import Governor
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_table_answer_cannot_publish_document_labels(self):
+        client = Mock()
+        client.responses.create.return_value = SimpleNamespace(output_text='Hay 2 contratos [D1].')
+        a = Assistant(self.settings(), Governor(), client)
+        result = a.explain('Cuántos', {'matching_contracts': 2, 'documents': []}, Redactor())
+        self.assertNotIn('[D1]', result)
+        self.assertIn('2 contratos', result)
     def test_summary_inserts_exact_verified_values_from_model_slots(self):
         import json
         client = Mock()

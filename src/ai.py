@@ -182,6 +182,10 @@ class Assistant:
                     self.last_validation = 'marcadores de cifras desconocidos'
                     continue
                 answer = re.sub(r'⟦VALOR_[A-Z]+⟧', lambda m: slots[m[0]], answer)
+                if not known:
+                    # Una respuesta de tabla no puede publicar etiquetas documentales.
+                    # Se retira la etiqueta de presentación; las cifras se validan igual.
+                    answer = re.sub(r'\[D\d+\]', '', answer).strip()
                 # 05 y 5 representan el mismo número; siguen rechazándose cifras nuevas.
                 allowed = {int(n) for n in re.findall(r'\d+', payload)}
                 if answer:
